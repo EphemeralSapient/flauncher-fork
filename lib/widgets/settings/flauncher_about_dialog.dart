@@ -1,4 +1,3 @@
-// FILE: flauncher_about_dialog.dart
 /*
  * FLauncher fork
  * Copyright (C) 2021 Étienne Fesser
@@ -18,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -36,6 +37,10 @@ class _FLauncherAboutDialogState extends State<FLauncherAboutDialog>
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
   late final Animation<double> _iconRotationAnimation;
+
+  // Staggered animations for the dialog children (content)
+  late final Animation<double> _childFadeAnimation;
+  late final Animation<Offset> _childSlideAnimation;
 
   @override
   void initState() {
@@ -57,6 +62,21 @@ class _FLauncherAboutDialogState extends State<FLauncherAboutDialog>
       end: 0.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
+    // Child staggered animations: start after 40% of the total duration.
+    _childFadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
+    );
+    _childSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.4, 1.0, curve: Curves.decelerate),
+      ),
+    );
+
     _controller.forward();
   }
 
@@ -71,48 +91,60 @@ class _FLauncherAboutDialogState extends State<FLauncherAboutDialog>
     final textStyle = Theme.of(context).textTheme.bodyMedium!;
     final underlined = textStyle.copyWith(decoration: TextDecoration.underline);
 
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: AboutDialog(
-          applicationName: widget.packageInfo.appName,
-          applicationVersion:
-              "${widget.packageInfo.version} (${widget.packageInfo.buildNumber})",
-          applicationIcon: RotationTransition(
-            turns: _iconRotationAnimation,
-            child: Image.asset("assets/logo.png", height: 72),
-          ),
-          applicationLegalese:
-              "© 2021 Étienne Fesser\nModifications © 2025 Ephemeral Sapient",
-          children: [
-            const SizedBox(height: 24),
-            RichText(
-              text: TextSpan(
-                style: textStyle,
-                children: [
-                  const TextSpan(
-                    text:
-                        "FLauncher is an open-source alternative launcher for Android TV.\n"
-                        "Source code available at ",
-                  ),
-                  TextSpan(
-                    text: "https://github.com/EphemeralSapient/flauncher-fork",
-                    style: underlined,
-                  ),
-                  const TextSpan(text: ".\n\n"),
-                  const TextSpan(text: "Logo by Katie "),
-                  TextSpan(text: "@fureturoe", style: underlined),
-                  const TextSpan(text: ", design by "),
-                  TextSpan(text: "@FXCostanzo", style: underlined),
-                  const TextSpan(text: ".\n\n"),
-                  const TextSpan(
-                    text: "Forked and enhanced by Ephemeral Sapient.",
-                  ),
-                ],
-              ),
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: AboutDialog(
+            applicationName: widget.packageInfo.appName,
+            applicationVersion:
+                "${widget.packageInfo.version} (${widget.packageInfo.buildNumber})",
+            applicationIcon: RotationTransition(
+              turns: _iconRotationAnimation,
+              child: Image.asset("assets/logo.png", height: 72),
             ),
-          ],
+            applicationLegalese:
+                "© 2021 Étienne Fesser\nModifications © 2025 Ephemeral Sapient",
+            children: [
+              const SizedBox(height: 24),
+              // Wrap the content of the dialog in staggered animations.
+              SlideTransition(
+                position: _childSlideAnimation,
+                child: FadeTransition(
+                  opacity: _childFadeAnimation,
+                  child: RichText(
+                    text: TextSpan(
+                      style: textStyle,
+                      children: [
+                        const TextSpan(
+                          text:
+                              "FLauncher is an open-source alternative launcher for Android TV.\n"
+                              "Source code available at ",
+                        ),
+                        TextSpan(
+                          text:
+                              "https://github.com/EphemeralSapient/flauncher-fork",
+                          style: underlined,
+                        ),
+                        const TextSpan(text: ".\n\n"),
+                        const TextSpan(text: "Logo by Katie "),
+                        TextSpan(text: "@fureturoe", style: underlined),
+                        const TextSpan(text: ", design by "),
+                        TextSpan(text: "@FXCostanzo", style: underlined),
+                        const TextSpan(text: ".\n\n"),
+                        const TextSpan(
+                          text: "Forked and enhanced by Ephemeral Sapient.",
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

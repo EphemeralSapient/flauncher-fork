@@ -23,23 +23,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _crashReportsEnabledKey = "crash_reports_enabled";
-const _analyticsEnabledKey = "analytics_enabled";
 const _use24HourTimeFormatKey = "use_24_hour_time_format";
 const _appHighlightAnimationEnabledKey = "app_highlight_animation_enabled";
 const _gradientUuidKey = "gradient_uuid";
-const _unsplashEnabledKey = "unsplash_enabled";
 const _unsplashAuthorKey = "unsplash_author";
 
 class SettingsService extends ChangeNotifier {
   final SharedPreferences _sharedPreferences;
   late final Timer _remoteConfigRefreshTimer;
-
-  bool get crashReportsEnabled =>
-      _sharedPreferences.getBool(_crashReportsEnabledKey) ?? true;
-
-  bool get analyticsEnabled =>
-      _sharedPreferences.getBool(_analyticsEnabledKey) ?? true;
 
   bool get use24HourTimeFormat =>
       _sharedPreferences.getBool(_use24HourTimeFormatKey) ?? true;
@@ -52,29 +43,12 @@ class SettingsService extends ChangeNotifier {
   String? get unsplashAuthor =>
       _sharedPreferences.getString(_unsplashAuthorKey);
 
-  SettingsService(this._sharedPreferences) {
-    _remoteConfigRefreshTimer = Timer.periodic(
-      Duration(hours: 6, minutes: 1),
-      (_) => _refreshFirebaseRemoteConfig(),
-    );
-  }
+  SettingsService(this._sharedPreferences);
 
   @override
   void dispose() {
     _remoteConfigRefreshTimer.cancel();
     super.dispose();
-  }
-
-  Future<void> setCrashReportsEnabled(bool value) async {
-    value = false; // This line is added to disable crash reports.
-    await _sharedPreferences.setBool(_crashReportsEnabledKey, value);
-    notifyListeners();
-  }
-
-  Future<void> setAnalyticsEnabled(bool value) async {
-    value = false; // This line is added to disable analytics.
-    await _sharedPreferences.setBool(_analyticsEnabledKey, value);
-    notifyListeners();
   }
 
   Future<void> setUse24HourTimeFormat(bool value) async {
@@ -99,9 +73,5 @@ class SettingsService extends ChangeNotifier {
       await _sharedPreferences.setString(_unsplashAuthorKey, value);
     }
     notifyListeners();
-  }
-
-  Future<void> _refreshFirebaseRemoteConfig() async {
-    bool updated = false;
   }
 }

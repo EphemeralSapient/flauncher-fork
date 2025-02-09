@@ -39,6 +39,7 @@ import io.flutter.plugin.common.EventChannel.StreamHandler
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.Serializable
+import java.io.File
 
 private const val METHOD_CHANNEL = "me.semp.flauncher/method"
 private const val EVENT_CHANNEL = "me.semp.flauncher/event"
@@ -143,15 +144,29 @@ class MainActivity : FlutterActivity() {
                     .addCategory(if (sideloaded) CATEGORY_LAUNCHER else CATEGORY_LEANBACK_LAUNCHER), 0)
             .map(ResolveInfo::activityInfo)
 
-    private fun buildAppMap(activityInfo: ActivityInfo, sideloaded: Boolean) = mapOf(
+    private fun buildAppMap(activityInfo: ActivityInfo, sideloaded: Boolean): Map<String, Serializable?> {
+        val pInfo = packageManager.getPackageInfo(activityInfo.packageName, 0)
+
+        // Safely get applicationInfo, handle if null
+        val appInfo = pInfo.applicationInfo
+        val sourceDir = appInfo?.sourceDir.orEmpty() // Empty string if null
+        val appFile = File(sourceDir)
+        val sizeInBytes = appFile.length()
+        val sizeInMb = sizeInBytes / (1024.0 * 1024.0)
+
+        return mapOf(
             "name" to activityInfo.loadLabel(packageManager).toString(),
             "packageName" to activityInfo.packageName,
             "banner" to activityInfo.loadBanner(packageManager)?.let(::drawableToByteArray),
             "icon" to activityInfo.loadIcon(packageManager)?.let(::drawableToByteArray),
-            "version" to packageManager.getPackageInfo(activityInfo.packageName, 0).versionName,
+            "version" to pInfo.versionName,
             "sideloaded" to sideloaded,
-    )
-
+            "sizeMb" to String.format("%.2f", sizeInMb),
+            // Safely get targetSdkVersion, use a default (like -1) if null
+            "targetSdkVersion" to (appInfo?.targetSdkVersion ?: -1)
+        )
+    }
+    
     private fun launchApp(packageName: String) = try {
         val intent = packageManager.getLeanbackLaunchIntentForPackage(packageName)
                 ?: packageManager.getLaunchIntentForPackage(packageName)

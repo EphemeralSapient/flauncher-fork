@@ -116,8 +116,15 @@ class FLauncherApp extends StatelessWidget {
               },
               child: Actions(
                 actions: {
+                  ActivateIntent: CallbackAction<ActivateIntent>(
+                    onInvoke: (intent) {
+                      debugPrint('Select button pressed!');
+                      return const ActivateIntent();
+                    },
+                  ),
                   BackIntent: BackAction(context, systemNavigator: true),
                 },
+
                 child: FLauncher(),
               ),
             ),

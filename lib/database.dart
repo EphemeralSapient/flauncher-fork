@@ -39,6 +39,9 @@ class Apps extends Table {
 
   BlobColumn get icon => blob().nullable()();
 
+  // New column for application size (in MB)
+  IntColumn get sizeMb => integer().nullable()();
+
   BoolColumn get hidden => boolean().withDefault(Constant(false))();
 
   BoolColumn get sideloaded => boolean().withDefault(Constant(false))();
@@ -102,8 +105,9 @@ class FLauncherDatabase extends _$FLauncherDatabase {
   FLauncherDatabase.inMemory()
     : super(LazyDatabase(() => NativeDatabase.memory()));
 
+  // Bump the schema version to include the new column
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -131,6 +135,10 @@ class FLauncherDatabase extends _$FLauncherDatabase {
       if (from <= 4 && from != 1) {
         await migrator.addColumn(apps, apps.sideloaded);
       }
+      // New migration: add sizeMb from version 5 to 6.
+      // if (from < 6) {
+      await migrator.addColumn(apps, apps.sizeMb);
+      // }
     },
     beforeOpen: (openingDetails) async {
       await customStatement('PRAGMA foreign_keys = ON;');

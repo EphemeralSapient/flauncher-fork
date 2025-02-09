@@ -22,9 +22,66 @@ import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/add_category_dialog.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
-import 'package:flauncher/widgets/settings/category_panel_page.dart';
+import 'package:flauncher/widgets/settings/category_panel_page.dart'
+    show CategoryPanelPage;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
+class TVIconButton extends StatefulWidget {
+  final Icon icon;
+  final VoidCallback onPressed;
+  final double splashRadius;
+  const TVIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.splashRadius = 28,
+  });
+
+  @override
+  _TVIconButtonState createState() => _TVIconButtonState();
+}
+
+class _TVIconButtonState extends State<TVIconButton> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableActionDetector(
+      autofocus: false,
+      onFocusChange: (focused) => setState(() => _isFocused = focused),
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.select): ActivateIntent(),
+      },
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (intent) {
+            widget.onPressed();
+            return null;
+          },
+        ),
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color:
+              _isFocused
+                  ? Colors.lightBlueAccent.withOpacity(0.3)
+                  : Colors.transparent,
+        ),
+        child: InkWell(
+          onTap: widget.onPressed,
+          borderRadius: BorderRadius.circular(widget.splashRadius),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: widget.icon,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class CategoriesPanelPage extends StatelessWidget {
   static const String routeName = "categories_panel";
@@ -34,8 +91,7 @@ class CategoriesPanelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Text("Categories", style: Theme.of(context).textTheme.titleLarge),
-      Divider(),
+      const SizedBox(height: 30),
       Selector<AppsService, List<CategoryWithApps>>(
         selector: (_, appsService) => appsService.categoriesWithApps,
         builder:
@@ -67,59 +123,110 @@ class CategoriesPanelPage extends StatelessWidget {
       ),
     ],
   );
-
   Widget _category(
     BuildContext context,
     List<CategoryWithApps> categories,
     int index,
-  ) => Padding(
-    key: Key(categories[index].category.id.toString()),
-    padding: EdgeInsets.only(bottom: 8),
-    child: Card(
-      margin: EdgeInsets.zero,
-      child: EnsureVisible(
-        alignment: 0.5,
-        child: ListTile(
-          dense: true,
-          title: Text(
-            categories[index].category.name,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                constraints: BoxConstraints(),
-                splashRadius: 20,
-                icon: Icon(Icons.arrow_upward),
-                onPressed:
-                    index > 0 ? () => _move(context, index, index - 1) : null,
+  ) {
+    // Wrap with FocusTraversalGroup so descendant widgets (like TVIconButton) receive focus.
+    return FocusTraversalGroup(
+      child: Builder(
+        builder: (context) {
+          // Check if any descendant is focused.
+          final bool isDescendantFocused =
+              FocusScope.of(context).focusedChild != null;
+          final Color cardColor =
+              isDescendantFocused
+                  ? Colors.white.withOpacity(0.13)
+                  : Colors.lightBlueAccent.withOpacity(0.1);
+          return Padding(
+            key: Key(categories[index].category.id.toString()),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Card(
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              margin: EdgeInsets.zero,
+              color: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              IconButton(
-                constraints: BoxConstraints(),
-                splashRadius: 20,
-                icon: Icon(Icons.arrow_downward),
-                onPressed:
-                    index < categories.length - 1
-                        ? () => _move(context, index, index + 1)
-                        : null,
-              ),
-              IconButton(
-                constraints: BoxConstraints(),
-                splashRadius: 20,
-                icon: Icon(Icons.settings),
-                onPressed:
-                    () => Navigator.of(context).pushNamed(
-                      CategoryPanelPage.routeName,
-                      arguments: categories[index].category.id,
+              child: EnsureVisible(
+                alignment: 0.5,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  dense: false,
+                  title: Text(
+                    categories[index].category.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontSize: 20,
                     ),
+                  ),
+                  subtitle: Text(
+                    'Category ID: ${categories[index].category.id}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TVIconButton(
+                        icon: const Icon(
+                          Icons.arrow_upward,
+                          color: Colors.white70,
+                          size: 28,
+                        ),
+                        onPressed:
+                            () => _move(
+                              context,
+                              index,
+                              index > 0 ? index - 1 : index,
+                            ),
+                      ),
+                      const SizedBox(width: 4),
+                      TVIconButton(
+                        icon: const Icon(
+                          Icons.arrow_downward,
+                          color: Colors.white70,
+                          size: 28,
+                        ),
+                        onPressed:
+                            () => _move(
+                              context,
+                              index,
+                              index < categories.length - 1 ? index + 1 : index,
+                            ),
+                      ),
+                      const SizedBox(width: 4),
+                      TVIconButton(
+                        icon: const Icon(
+                          Icons.settings,
+                          color: Colors.white70,
+                          size: 28,
+                        ),
+                        onPressed:
+                            () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => CategoryPanelPage(categoryId: index),
+                              ),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _move(BuildContext context, int oldIndex, int newIndex) async {
     await context.read<AppsService>().moveCategory(oldIndex, newIndex);

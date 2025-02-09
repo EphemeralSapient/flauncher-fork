@@ -45,6 +45,9 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.13
   # unsplash_client: ^2.1.0+3
   webview_flutter: ^4.0.5
+  google_fonts: ^6.2.1
+  flutter_staggered_animations: ^1.1.1
+  mesh_gradient: ^1.3.8
 
 
 dev_dependencies:

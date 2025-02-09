@@ -21,7 +21,6 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/add_to_category_dialog.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
 import 'package:flutter/material.dart';
@@ -47,31 +46,17 @@ class _ApplicationsPanelPageState extends State<ApplicationsPanelPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Title and TabBar are padded for a modern look.
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                _title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const Divider(
-              color: Colors.white54,
-              thickness: 1,
-              indent: 16,
-              endIndent: 16,
-            ),
             Material(
               color: Colors.transparent,
               child: TabBar(
+                dividerColor: Colors.transparent,
+                enableFeedback: true,
+                isScrollable: true,
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.lightBlueAccent.withOpacity(0.3),
+                  color: Colors.lightBlue.withOpacity(0.3),
                 ),
+                indicatorColor: Colors.lightBlue,
                 indicatorAnimation: TabIndicatorAnimation.elastic,
                 labelStyle: Theme.of(context).textTheme.bodyLarge,
                 unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium,
@@ -114,7 +99,7 @@ class _ApplicationsPanelPageState extends State<ApplicationsPanelPage> {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            // const SizedBox(height: 8),
             // Expanded TabBarView with glassy scroll lists
             Expanded(
               child: TabBarView(
@@ -228,7 +213,6 @@ class _HiddenTab extends StatelessWidget {
   );
 }
 
-/// A glassy, remote‑friendly app card.
 class GlassyAppCard extends StatelessWidget {
   final App application;
   const GlassyAppCard({super.key, required this.application});
@@ -237,85 +221,91 @@ class GlassyAppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return FocusableActionDetector(
       autofocus: false,
-      onFocusChange: (focused) {},
+      onFocusChange: (_) {},
       child: Card(
-        color: Colors.white.withOpacity(0.1),
-        elevation: Focus.of(context).hasFocus ? 8 : 2,
+        color:
+            Focus.of(context).hasFocus
+                ? Colors.lightBlue.withOpacity(0.2)
+                : Colors.white.withOpacity(0.1),
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.read<AppsService>().launchApp(application),
-          onLongPress:
-              () => showDialog<Category>(
+          onTap:
+              () => showDialog(
                 context: context,
-                builder: (_) => AddToCategoryDialog(application),
+                builder:
+                    (_) => ApplicationInfoPanel(
+                      category: null,
+                      application: application,
+                    ),
               ),
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                // Icon (with fallback if missing)
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
+                // Banner or icon
+                if (application.banner != null)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey[800],
-                    image:
-                        application.icon != null && application.icon!.isNotEmpty
-                            ? DecorationImage(
-                              image: MemoryImage(application.icon!),
-                              fit: BoxFit.cover,
-                            )
-                            : null,
+                    child: Image.memory(
+                      application.banner!,
+                      width: 80,
+                      height: 45,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                else if (application.icon != null)
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: DecorationImage(
+                        image: MemoryImage(application.icon!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                ),
                 const SizedBox(width: 12),
-                // Application name
+                // App name, version, size
                 Expanded(
-                  child: Text(
-                    application.name,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: Colors.white),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        application.name,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'v${application.version} - ${application.sizeMb ?? "?"}MB',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                // Action buttons
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!application.hidden)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.add_box_outlined,
-                          color: Colors.lightBlueAccent,
-                        ),
-                        splashRadius: 24,
-                        onPressed:
-                            () => showDialog<Category>(
-                              context: context,
-                              builder: (_) => AddToCategoryDialog(application),
+                // Info icon
+                IconButton(
+                  icon: const Icon(Icons.info_outline, color: Colors.white70),
+                  splashRadius: 24,
+                  onPressed:
+                      () => showDialog(
+                        context: context,
+                        builder:
+                            (_) => ApplicationInfoPanel(
+                              category: null,
+                              application: application,
                             ),
                       ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.info_outline,
-                        color: Colors.white70,
-                      ),
-                      splashRadius: 24,
-                      onPressed:
-                          () => showDialog(
-                            context: context,
-                            builder:
-                                (context) => ApplicationInfoPanel(
-                                  category: null,
-                                  application: application,
-                                ),
-                          ),
-                    ),
-                  ],
                 ),
               ],
             ),

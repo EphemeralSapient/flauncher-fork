@@ -7,7 +7,8 @@ So, I've changed
 -   `me.efesser.flauncher` to `me.semp.flauncher`
 -   Removed the firebase and it's related analytics
 -   Removed Unsplash client since going to relay only on local storage pictures
--   Redesigned settings
+-   Redesigned enite settings
+-   Changed application overview to check app size and such other
 
 Plannings :
 
