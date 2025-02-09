@@ -33,8 +33,6 @@ class GradientPanelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // For big-screen design, consider scaling text, spacing, etc.
-    final theme = Theme.of(context);
-    final titleStyle = theme.textTheme.titleLarge?.copyWith(fontSize: 24);
 
     return Column(
       children: [
@@ -71,7 +69,7 @@ class GradientPanelPage extends StatelessWidget {
 class _AnimatedGradientCard extends StatefulWidget {
   final FLauncherGradient fLauncherGradient;
 
-  const _AnimatedGradientCard({super.key, required this.fLauncherGradient});
+  const _AnimatedGradientCard({required this.fLauncherGradient});
 
   @override
   State<_AnimatedGradientCard> createState() => _AnimatedGradientCardState();

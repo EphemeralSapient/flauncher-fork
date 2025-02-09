@@ -87,7 +87,6 @@ class $AppsTable extends Apps with TableInfo<$AppsTable, App> {
     }),
     defaultValue: Constant(false),
   );
-  static const VerificationMeta _sizeMbMeta = const VerificationMeta('sizeMb');
   late final GeneratedColumn<int> sizeMb = GeneratedColumn<int>(
     'size_mb',
     aliasedName,

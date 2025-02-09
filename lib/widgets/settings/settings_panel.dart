@@ -16,6 +16,7 @@
  */
 import 'dart:ui';
 
+import 'package:flauncher/providers/settings_service.dart' show SettingsService;
 import 'package:flauncher/widgets/settings/applications_panel_page.dart'
     show ApplicationsPanelPage;
 import 'package:flauncher/widgets/settings/categories_panel_page.dart'
@@ -30,6 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 
 class SettingsPanel extends StatefulWidget {
   const SettingsPanel({super.key});
@@ -76,7 +78,7 @@ class _SettingsPanelState extends State<SettingsPanel>
     );
   }
 
-  Widget _buildMenuList(double panelWidth) {
+  Widget _buildMenuList(double panelWidth, var settingsService) {
     // Define menu button data
     final menuItemsData = [
       {
@@ -127,20 +129,24 @@ class _SettingsPanelState extends State<SettingsPanel>
       const SizedBox(height: 20),
       SwitchTile(
         label: "Use 24-hour time",
-        value: _use24HourTime,
+        value: settingsService.use24HourTimeFormat,
         onChanged: (val) {
           setState(() {
             _use24HourTime = val;
           });
+          // Persist the new setting
+          settingsService.setUse24HourTimeFormat(val);
         },
       ),
       SwitchTile(
         label: "Highlight Animation",
-        value: _highlightAnimation,
+        value: settingsService.appHighlightAnimationEnabled,
         onChanged: (val) {
           setState(() {
             _highlightAnimation = val;
           });
+          // Persist the new setting
+          settingsService.setAppHighlightAnimationEnabled(val);
         },
       ),
     ];
@@ -174,7 +180,7 @@ class _SettingsPanelState extends State<SettingsPanel>
     // Panel occupies about 50% of screen width and 70% of its height.
     final double panelWidth = MediaQuery.of(context).size.width * 0.5;
     final double panelHeight = MediaQuery.of(context).size.height * 0.7;
-
+    final settingsService = Provider.of<SettingsService>(context);
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Material(
@@ -203,7 +209,7 @@ class _SettingsPanelState extends State<SettingsPanel>
                     ),
                     padding: const EdgeInsets.all(16),
                     child: SingleChildScrollView(
-                      child: _buildMenuList(panelWidth),
+                      child: _buildMenuList(panelWidth, settingsService),
                     ),
                   ),
                   // Right content area with animated slide/fade/scale transition.
@@ -475,6 +481,18 @@ class _SwitchTileState extends State<SwitchTile> {
         setState(() {
           _isFocused = hasFocus;
         });
+      },
+      // Add TV remote support: listen for the "select" (Enter/OK) key press.
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.select): ActivateIntent(),
+      },
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (intent) {
+            widget.onChanged(!widget.value);
+            return null;
+          },
+        ),
       },
       child: GestureDetector(
         onTap: () => widget.onChanged(!widget.value),

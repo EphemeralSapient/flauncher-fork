@@ -36,8 +36,6 @@ class ApplicationsPanelPage extends StatefulWidget {
 }
 
 class _ApplicationsPanelPageState extends State<ApplicationsPanelPage> {
-  String _title = "TV Applications";
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -80,23 +78,6 @@ class _ApplicationsPanelPageState extends State<ApplicationsPanelPage> {
                     ),
                   ),
                 ],
-                onTap: (index) {
-                  setState(() {
-                    switch (index) {
-                      case 0:
-                        _title = "TV Applications";
-                        break;
-                      case 1:
-                        _title = "Non-TV Applications";
-                        break;
-                      case 2:
-                        _title = "Hidden Applications";
-                        break;
-                      default:
-                        _title = "Applications";
-                    }
-                  });
-                },
               ),
             ),
             // const SizedBox(height: 8),

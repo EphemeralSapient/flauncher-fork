@@ -7,7 +7,7 @@
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,14 +18,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:convert';
+import 'dart:ui'; // For BackdropFilter if you want a glassy overlay
 
-import 'package:flauncher/providers/settings_service.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/providers/wallpaper_service.dart'
+    show NoFileExplorerException, WallpaperService;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class WallpaperPanelPage extends StatelessWidget {
   static const String routeName = "wallpaper_panel";
@@ -34,74 +33,107 @@ class WallpaperPanelPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TVButton(
-            label: "Pick Custom Wallpaper",
-            icon: Icons.image_outlined,
-            onPressed: () async {
-              try {
-                await context.read<WallpaperService>().pickWallpaper();
-              } on NoFileExplorerException {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    duration: const Duration(seconds: 8),
-                    content: Row(
-                      children: const [
-                        Icon(Icons.error_outline, color: Colors.red),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Please install a file explorer in order to pick an image.",
+    // Example layout with a frosted glass background and a grid of option cards
+    return Stack(
+      children: [
+        // Optional: If you want a blurry/frosted effect behind the GridView
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(color: Colors.black.withOpacity(0.2)),
+          ),
+        ),
+
+        Column(
+          children: [
+            const SizedBox(height: 20),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2, // Adjust column count for your layout
+                mainAxisSpacing: 24,
+                crossAxisSpacing: 24,
+                padding: const EdgeInsets.all(30),
+                childAspectRatio: 16 / 9, // Wider items for big screens
+                children: [
+                  WallpaperOptionCard(
+                    label: "Device Photo",
+                    icon: Icons.photo_library_outlined,
+                    onPressed: () async {
+                      try {
+                        await context.read<WallpaperService>().pickWallpaper();
+                      } on NoFileExplorerException {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            duration: const Duration(seconds: 8),
+                            content: Row(
+                              children: const [
+                                Icon(Icons.error_outline, color: Colors.red),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Please install a file explorer in order to pick an image.",
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        );
+                      }
+                    },
                   ),
-                );
-              }
-            },
-          ),
-          const SizedBox(height: 32),
-          Selector<SettingsService, String?>(
-            selector: (_, settingsService) => settingsService.unsplashAuthor,
-            builder: (context, json, _) {
-              if (json != null) {
-                final authorInfo = jsonDecode(json);
-                return TVButton(
-                  label: "Photo by ${authorInfo["username"]} on Unsplash",
-                  icon: Icons.photo,
-                  onPressed:
-                      () => Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder:
-                              (context) => WebViewWidget(
-                                controller:
-                                    WebViewController()..loadRequest(
-                                      Uri.parse(authorInfo["link"]),
-                                    ),
-                              ),
-                        ),
-                      ),
-                );
-              } else {
-                return const SizedBox.shrink();
-              }
-            },
-          ),
-        ],
-      ),
+                  WallpaperOptionCard(
+                    label: "Web Photo",
+                    icon: Icons.cloud_download_outlined,
+                    onPressed: _mockAction,
+                  ),
+                  WallpaperOptionCard(
+                    label: "Device Video",
+                    icon: Icons.videocam_outlined,
+                    onPressed: _mockAction,
+                  ),
+                  WallpaperOptionCard(
+                    label: "Web Video",
+                    icon: Icons.videocam_rounded,
+                    onPressed: _mockAction,
+                  ),
+                  WallpaperOptionCard(
+                    label: "Slideshow",
+                    icon: Icons.slideshow_outlined,
+                    onPressed: _mockAction,
+                  ),
+                  WallpaperOptionCard(
+                    label: "Random Image",
+                    icon: Icons.shuffle_rounded,
+                    onPressed: _mockAction,
+                  ),
+                  WallpaperOptionCard(
+                    label: "Visualizer",
+                    icon: Icons.graphic_eq_outlined,
+                    onPressed: _mockAction,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
+
+  // Just a placeholder for demonstration, remove or replace with real logic
+  static void _mockAction() {}
 }
 
-class TVButton extends StatefulWidget {
+/// Redesigned “card” with a new animation style:
+/// - No rotation
+/// - Scale + color glow on focus
+/// - Icon & label fade in more strongly on focus
+class WallpaperOptionCard extends StatefulWidget {
   final String label;
   final IconData icon;
   final VoidCallback onPressed;
-  const TVButton({
+
+  const WallpaperOptionCard({
     super.key,
     required this.label,
     required this.icon,
@@ -109,19 +141,14 @@ class TVButton extends StatefulWidget {
   });
 
   @override
-  _TVButtonState createState() => _TVButtonState();
+  State<WallpaperOptionCard> createState() => _WallpaperOptionCardState();
 }
 
-class _TVButtonState extends State<TVButton> {
+class _WallpaperOptionCardState extends State<WallpaperOptionCard> {
   bool _isFocused = false;
 
   @override
   Widget build(BuildContext context) {
-    final Color bgColor =
-        _isFocused
-            ? Colors.lightBlueAccent.withOpacity(0.6)
-            : Colors.lightBlueAccent.withOpacity(0.3);
-
     return FocusableActionDetector(
       autofocus: false,
       onFocusChange: (focused) => setState(() => _isFocused = focused),
@@ -130,36 +157,92 @@ class _TVButtonState extends State<TVButton> {
       },
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(
-          onInvoke: (intent) {
+          onInvoke: (_) {
             widget.onPressed();
             return null;
           },
         ),
       },
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Material(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: widget.onPressed,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(widget.icon, size: 32, color: Colors.white),
-                  const SizedBox(width: 16),
-                  Text(
-                    widget.label,
-                    style: const TextStyle(fontSize: 24, color: Colors.white),
-                  ),
-                ],
+      child: _buildAnimatedCard(),
+    );
+  }
+
+  Widget _buildAnimatedCard() {
+    // We’ll drive the UI with a TweenAnimationBuilder from 0.0 to 1.0
+    // where 0 = unfocused, 1 = fully focused
+    final targetValue = _isFocused ? 1.0 : 0.0;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: targetValue, end: targetValue),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      builder: (context, animValue, child) {
+        // animValue goes from 0..1. We use it to derive scale, color intensity, etc.
+        final scale = 1.0 + (animValue * 0.08); // from 1.0 to 1.08
+        final glowOpacity = animValue * 0.5; // from 0.0 to 0.5
+        final containerColor =
+            Color.lerp(
+              Colors.lightBlueAccent.withOpacity(0.15),
+              Colors.lightBlueAccent.withOpacity(0),
+              animValue,
+            )!;
+
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            decoration: BoxDecoration(
+              // Use a simple box color or a gradient
+              color: containerColor,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.lightBlueAccent.withOpacity(glowOpacity),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: widget.onPressed,
+              child: _buildCardContents(animValue),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCardContents(double focusValue) {
+    // We can also fade the icon & label based on focusValue
+    final double iconOpacity = 0.5 + (focusValue * 0.5); // from 0.5 -> 1.0
+    final double textOpacity = 0.7 + (focusValue * 0.3); // from 0.7 -> 1.0
+    final double textSize = 18 + (focusValue * 4); // from 18 -> 22
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedOpacity(
+            opacity: iconOpacity,
+            duration: const Duration(milliseconds: 150),
+            child: Icon(widget.icon, size: 42, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          AnimatedOpacity(
+            opacity: textOpacity,
+            duration: const Duration(milliseconds: 150),
+            child: Text(
+              widget.label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: textSize,
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
